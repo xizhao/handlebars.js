@@ -88,6 +88,9 @@ Module.new do
   local = Regexp.escape(File.expand_path(Dir.pwd))
   qunit_spec = File.expand_path("../qunit_spec.js", __FILE__)
   js_context.load(qunit_spec.sub(/^#{local}\//, ''))
+
+  html_spec = File.expand_path("../html_parser_spec.js", __FILE__)
+  js_context.load(html_spec.sub(/^#{local}\//, ''))
 end
 
 test_context.modules.each do |mod|

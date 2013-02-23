@@ -3,6 +3,7 @@
         "console",
         "Ember",
         "DS",
+        "HTML5Tokenizer",
         "Handlebars",
         "Metamorph",
         "ember_assert",
