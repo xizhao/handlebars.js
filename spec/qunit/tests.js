@@ -39,6 +39,10 @@ function element(tagName, attrs, children) {
   return new Handlebars.HTMLElement(tagName, attrs, children);
 }
 
+function block(helper, children) {
+  return new Handlebars.BlockElement(helper, children);
+}
+
 test("a simple piece of content", function() {
   deepEqual(preprocessHTML('some content'), ['some content']);
 });

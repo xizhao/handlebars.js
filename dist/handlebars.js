@@ -2629,6 +2629,17 @@ processor.program = function(program) {
   return this.elementStack[0].children;
 };
 
+processor.block = function(block) {
+  processToken(this.elementStack, block);
+
+  if (block.program) {
+    this.accept(block.program);
+  }
+
+  var blockNode = this.elementStack.pop();
+  currentElement(this).children.push(blockNode);
+};
+
 processor.content = function(content) {
   var tokens = this.tokenizer.tokenizePart(content.string);
   return processTokens(this.elementStack, tokens);
@@ -2637,6 +2648,7 @@ processor.content = function(content) {
 processor.mustache = function(mustache) {
   var token = this.tokenizer.token;
 
+  // TODO: Monkey patch Chars.addChar like attributes
   if (token instanceof Chars) {
     processToken(this.elementStack, token);
     this.tokenizer.token = null;
@@ -2698,12 +2710,19 @@ function processToken(elementStack, token) {
     }
   } else if (token instanceof StartTag) {
     elementStack.push(new Handlebars.HTMLElement(token.tagName, token.attributes));
+  } else if (token instanceof Handlebars.AST.BlockNode) {
+    elementStack.push(new Handlebars.BlockElement(token.mustache));
   }
 }
 
 Handlebars.HTMLElement = function(tag, attributes, children) {
   this.tag = tag;
   this.attributes = attributes || [];
+  this.children = children || [];
+};
+
+Handlebars.BlockElement = function(helper, children) {
+  this.helper = helper;
   this.children = children || [];
 };
 
