@@ -38,14 +38,12 @@ task :npm_test => [:release] do
   fail "npm test failed with exit code #{$?.exitstatus}" if (rc.nil? || ! rc || $?.exitstatus != 0)
 end
 
-task :default => [:compile, :spec, :npm_test]
-
 def remove_exports(string)
   match = string.match(%r{^// BEGIN\(BROWSER\)\n(.*)\n^// END\(BROWSER\)}m)
   match ? match[1] : string
 end
 
-minimal_deps = %w(browser-prefix base compiler/parser compiler/base compiler/ast utils compiler/compiler compiler/simple-html-tokenizer compiler/visitor compiler/html runtime browser-suffix).map do |file|
+minimal_deps = %w(browser-prefix base compiler/parser compiler/base compiler/ast utils compiler/compiler compiler/simple-html-tokenizer compiler/visitor compiler/html compiler/html_compiler runtime browser-suffix).map do |file|
   "lib/handlebars/#{file}.js"
 end
 
@@ -107,3 +105,5 @@ task :bench => "vendor" do
 
   system "node bench/handlebars.js"
 end
+
+task :default => :release

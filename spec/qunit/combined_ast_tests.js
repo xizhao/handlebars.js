@@ -1,6 +1,6 @@
 (function() {
 
-module("HTML-based compiler");
+module("HTML-based compiler (AST)");
 
 function preprocessHTML(html) {
   return Handlebars.preprocessHTML(html);
@@ -100,20 +100,14 @@ test("A more complete embedding example", function() {
   ]);
 });
 
-//test("A more complete embedding example", function() {
-  //var html = "{{embed}} {{some 'content'}} " +
-             //"<div class='{{foo}} {{bind-class isEnabled truthy='enabled' falsy='disabled'}}'>" +
-             //"{{ content }}</div> {{more 'embed'}}";
+test("Simple embedded block helpers", function() {
+  var html = "{{#if foo}}<div>{{content}}</div>{{/if}}";
 
-  //deepEqual(preprocessHTML(html), [
-    //mustache('embed'), ' ',
-    //mustache([id('some'), string('content')]), ' ',
-    //element("div",
-            //[["class", [mustache("foo"), ' ',
-                       //mustache([id("bind-class"), id('isEnabled')],
-                                              //[['truthy', string('enabled')], ['falsy', string('disabled')]])]]],
-            //[mustache("content")]),
-    //' ', mustache('more', string('embed'))]);
-//});
+  deepEqual(preprocessHTML(html), [
+    block(mustache([id('if'), id('foo')]), [
+      element('div', [ mustache('content') ])
+    ])
+  ]);
+});
 
 })();
