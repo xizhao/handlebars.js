@@ -35,3 +35,18 @@ test("The compiler can handle nesting", function() {
 
   equalHTML(fragment, html);
 });
+
+test("The compiler can handle quotes", function() {
+  compilesTo('<div>"This is a title," we\'re on a boat</div>');
+});
+
+function compilesTo(html, expected, context) {
+  var template = Handlebars.compileHTML(html);
+  var fragment = template(context);
+
+  equalHTML(fragment, expected || html);
+}
+
+test("The compiler can handle simple handlebars", function() {
+  compilesTo('<div>{{title}}</div>', '<div>hello</div>', { title: 'hello' });
+});
