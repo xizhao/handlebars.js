@@ -3051,6 +3051,7 @@ compiler2.ambiguousAttr = function(attrName, string) {
 
 compiler2.helperAttr = function(attrName, name, size) {
   var prepared = prepareHelper(this, size);
+  debugger;
   pushStackLiteral(this, helper('helperAttr', quotedString(name), this.el(), quotedString(attrName), 'context', prepared.args, prepared.options));
 };
 

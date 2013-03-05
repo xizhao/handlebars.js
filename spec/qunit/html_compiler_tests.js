@@ -168,26 +168,26 @@ test("Simple data binding using text nodes", function() {
   equalHTML(fragment, '<div>brown cow world</div>');
 });
 
-test("Simple data binding using fragments", function() {
+test("Simple data binding on fragments", function() {
   var callback;
 
   Handlebars.registerHTMLHelper('RESOLVE', function(parts, options) {
     var context = this,
         fragment = Handlebars.dom.frag(options.element, context[parts[0]]);
 
-    var comment1 = document.createComment(''),
-        comment2 = document.createComment('');
-
-    fragment.insertBefore(comment1, fragment.firstChild);
-    fragment.appendChild(comment2);
+    var firstChild = fragment.firstChild,
+        lastChild = fragment.lastChild;
 
     callback = function() {
       var range = document.createRange();
-      range.setStartAfter(comment1);
-      range.setEndBefore(comment2);
+      range.setStartBefore(firstChild);
+      range.setEndAfter(lastChild);
 
       var value = context[parts[0]],
           fragment = range.createContextualFragment(value);
+
+      firstChild = fragment.firstChild;
+      lastChild = fragment.lastChild;
 
       range.deleteContents();
       range.insertNode(fragment);
@@ -196,18 +196,18 @@ test("Simple data binding using fragments", function() {
     options.element.appendChild(fragment);
   });
 
-  var object = { title: '<p>hello</p>' };
-  var fragment = compilesTo('<div>{{title}} world</div>', '<div><!----><p>hello</p><!----> world</div>', object);
+  var object = { title: '<p>hello</p> to the' };
+  var fragment = compilesTo('<div>{{title}} world</div>', '<div><p>hello</p> to the world</div>', object);
 
-  object.title = '<p>goodbye</p>';
+  object.title = '<p>goodbye</p> to the';
   callback();
 
-  equalHTML(fragment, '<div><!----><p>goodbye</p><!----> world</div>');
+  equalHTML(fragment, '<div><p>goodbye</p> to the world</div>');
 
-  object.title = '<p>brown cow</p>';
+  object.title = '<p>brown cow</p> to the';
   callback();
 
-  equalHTML(fragment, '<div><!----><p>brown cow</p><!----> world</div>');
+  equalHTML(fragment, '<div><p>brown cow</p> to the world</div>');
 });
 
 test("RESOLVE hook receives escaping information", function() {
@@ -300,4 +300,35 @@ test("A helper can choose to insert the attribute itself", function() {
   });
 
   compilesTo('<a href="{{testing url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html'});
+});
+
+test("Attribute helpers take a hash", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    options.element.setAttribute(options.attrName, this[options.hash.path]);
+  });
+
+  compilesTo('<a href="{{testing path=url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html' });
+});
+
+test("Attribute helpers can use the hash for data binding", function() {
+  var callback;
+
+  Handlebars.registerHTMLHelper('testing', function(path, options) {
+    var element = options.element,
+        context = this;
+
+    callback = function() {
+      var value = context[path];
+      element.setAttribute(options.attrName, value ? options.hash.truthy : options.hash.falsy);
+    }
+
+    callback();
+  });
+
+  var object = { on: true };
+  var fragment = compilesTo('<div class="{{testing on truthy="yeah" falsy="nope"}}">hi</div>', '<div class="yeah">hi</div>', object);
+
+  object.on = false;
+  callback();
+  equalHTML(fragment, '<div class="nope">hi</div>')
 });
