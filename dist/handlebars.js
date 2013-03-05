@@ -2827,13 +2827,15 @@ compiler1.mustacheContent = function(mustache) {
   var type = classifyMustache(mustache, this.options);
 
   if (type === 'simple') {
-    this.opcode('dynamic', mustache.id.parts, mustache.escaped);
+    this.opcode('dynamic', mustache.id.parts);
   } else if (type === 'ambiguous') {
-    this.opcode('ambiguous', mustache.id.string, mustache.escaped);
+    this.opcode('ambiguous', mustache.id.string);
   } else {
     processParams(this, mustache.params);
-    this.opcode('helper', mustache.id.string, mustache.params.length, mustache.escaped);
+    this.opcode('helper', mustache.id.string, mustache.params.length);
   }
+
+  appendMustache(this, mustache);
 };
 
 compiler1.ID = function(id) {
@@ -2878,6 +2880,14 @@ function processParams(compiler, params) {
   });
 }
 
+function appendMustache(compiler, mustache) {
+  if (mustache.escaped) {
+    compiler.opcode('appendText');
+  } else {
+    compiler.opcode('appendFragment');
+  }
+}
+
 Handlebars.HTMLCompiler2 = function() {};
 
 var compiler2 = Handlebars.HTMLCompiler2.prototype;
@@ -2906,7 +2916,7 @@ function processOpcodes(compiler, opcodes) {
 compiler2.preamble = function() {
   this.push("var element0, el");
   this.push("var frag = element0 = document.createDocumentFragment()");
-  this.push("var dom = Handlebars.dom;")
+  this.push("var dom = Handlebars.dom")
 };
 
 compiler2.postamble = function() {
@@ -2933,16 +2943,13 @@ compiler2.literal = function(literal) {
   pushStackLiteral(this, literal);
 };
 
-function invoke(receiver, method) {
-  var params = [].slice.call(arguments, 2);
-  return receiver + "." + method + "(" + params.join(", ") + ")";
-}
+compiler2.appendText = function() {
+  this.push(helper('appendText', this.el(), popStack(this)));
+};
 
-function helper() {
-  var args = [].slice.call(arguments, 0);
-  args.unshift(dom);
-  return invoke.apply(this, args);
-}
+compiler2.appendFragment = function() {
+  this.push(helper('appendFragment', this.el(), popStack(this)));
+};
 
 compiler2.openElement = function(tagName) {
   var elRef = pushElement(this);
@@ -2958,23 +2965,15 @@ compiler2.closeElement = function() {
   this.push(invoke(this.el(), 'appendChild', elRef));
 };
 
-compiler2.dynamic = function(parts, escaped) {
-  var parentRef = topElement(this);
-
-  if (escaped) {
-    this.push(helper('append', this.el(), 'context', quotedArray(parts)));
-  } else {
-    this.push(helper('appendFragment', this.el(), 'context', quotedArray(parts)));
-  }
+compiler2.dynamic = function(parts) {
+  pushStackLiteral(this, helper('resolve', 'context', quotedArray(parts)));
 };
 
-compiler2.ambiguous = function(string, escaped) {
-  var parentRef = topElement(this);
-
-  this.push(helper('ambiguous', this.el(), 'context', quotedString(string), escaped));
+compiler2.ambiguous = function(string) {
+  pushStackLiteral(this, helper('ambiguous', this.el(), 'context', quotedString(string)));
 };
 
-compiler2.helper = function(name, size, escaped) {
+compiler2.helper = function(name, size) {
   var parentRef = topElement(this),
       args = [];
 
@@ -2982,8 +2981,19 @@ compiler2.helper = function(name, size, escaped) {
     args.push(popStack(this));
   }
 
-  this.push(helper('helper', quotedString(name), this.el(), 'context', array(args)));
+  pushStackLiteral(this, helper('helper', quotedString(name), this.el(), 'context', array(args)));
 };
+
+function invoke(receiver, method) {
+  var params = [].slice.call(arguments, 2);
+  return receiver + "." + method + "(" + params.join(", ") + ")";
+}
+
+function helper() {
+  var args = [].slice.call(arguments, 0);
+  args.unshift(dom);
+  return invoke.apply(this, args);
+}
 
 function escapeString(string) {
   return string.replace(/'/g, "\\'");
@@ -3073,16 +3083,15 @@ Handlebars.dom = {
         element: element
       });
       value = helper.apply(context, args);
-      this.appendValue(element, value, escaped);
+      return value;
     } else {
-      this.append(element, context, [string], escaped)
+      return this.resolve(context, [string]);
     }
   },
 
   helper: function(name, element, context, args, escaped) {
     var helper = Handlebars.htmlHelpers[name];
-    var value = helper.apply(context, args);
-    this.appendValue(element, value, escaped);
+    return helper.apply(context, args);
   },
 
   resolve: function(context, parts) {
