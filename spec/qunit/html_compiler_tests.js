@@ -340,3 +340,20 @@ test("A simple block helper can return the default document fragment", function(
 
   compilesTo('{{#testing}}<div id="test">123</div>{{/testing}}', '<div id="test">123</div>');
 });
+
+test("A block helper can pass a context to be used in the child", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    return options.render({ title: 'Rails is omakase' });
+  });
+
+  compilesTo('{{#testing}}<div id="test">{{title}}</div>{{/testing}}', '<div id="test">Rails is omakase</div>');
+});
+
+test("A block helper can insert the document fragment manually", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    var frag = options.render({ title: 'Rails is omakase' });
+    options.element.appendChild(frag);
+  });
+
+  compilesTo('{{#testing}}<div id="test">{{title}}</div>{{/testing}}', '<div id="test">Rails is omakase</div>');
+})
