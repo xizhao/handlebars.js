@@ -222,3 +222,7 @@ test("Helpers receive escaping information", function() {
 test("Attributes can use computed values", function() {
   compilesTo('<a href="{{url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html' });
 });
+
+test("Attributes can use computed paths", function() {
+  compilesTo('<a href="{{post.url}}">linky</a>', '<a href="linky.html">linky</a>', { post: { url: 'linky.html' }});
+});
