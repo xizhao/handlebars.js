@@ -372,34 +372,20 @@ test("Data-bound block helpers", function() {
   var callback;
 
   Handlebars.registerHTMLHelper('testing', function(path, options) {
-    var context = this, value = context[path], frag, firstElement, lastElement;
+    var context = this, firstElement, lastElement;
 
-    if (value) {
-      var frag = options.render(context);
-    } else {
-      frag = document.createDocumentFragment();
-    }
+    var frag = buildFrag();
 
-    if (!frag.firstChild) {
-      firstElement = lastElement = document.createComment('');
-      frag.appendChild(firstElement);
-    } else {
-      firstElement = frag.firstChild;
-      lastElement = frag.lastChild;
-    }
+    function buildFrag() {
+      var frag;
 
-    callback = function() {
-      var value = context[path];
+      value = context[path];
 
       if (value) {
-        var frag = options.render(context);
+        frag = options.render(context);
       } else {
         frag = document.createDocumentFragment();
       }
-
-      var range = document.createRange();
-      range.setStartBefore(firstElement);
-      range.setEndAfter(lastElement);
 
       if (!frag.firstChild) {
         firstElement = lastElement = document.createComment('');
@@ -408,6 +394,16 @@ test("Data-bound block helpers", function() {
         firstElement = frag.firstChild;
         lastElement = frag.lastChild;
       }
+
+      return frag;
+    }
+
+    callback = function() {
+      var range = document.createRange();
+      range.setStartBefore(firstElement);
+      range.setEndAfter(lastElement);
+
+      var frag = buildFrag();
 
       range.deleteContents();
       range.insertNode(frag);

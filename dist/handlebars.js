@@ -2648,7 +2648,7 @@ processor.content = function(content) {
 
 processor.mustache = function(mustache) {
   switchToHandlebars(this);
-  
+
   pushChild(this, mustache);
 };
 
@@ -2747,7 +2747,6 @@ Handlebars.registerHTMLHelper = function(name, callback) {
 
 function compile(string, options) {
   var ast = Handlebars.preprocessHTML(string);
-  console.log(ast);
   return compileAST(ast, options);
 }
 
