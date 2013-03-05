@@ -162,3 +162,17 @@ test("RESOLVE hook receives escaping information", function() {
 
   compilesTo('<div>{{escaped}}-{{{unescaped}}</div>', '<div>escaped-unescaped</div>');
 });
+
+test("Helpers receive escaping information", function() {
+  Handlebars.registerHTMLHelper('testing', function(path, options) {
+    if (path === 'escaped') {
+      equal(options.escaped, true);
+    } else if (path === 'unescaped') {
+      equal(options.escaped, false);
+    }
+
+    options.element.appendChild(document.createTextNode(path))
+  });
+
+  compilesTo('<div>{{testing escaped}}-{{{testing unescaped}}</div>', '<div>escaped-unescaped</div>');
+});
