@@ -54,3 +54,21 @@ test("The compiler can handle simple handlebars", function() {
 test("The compiler can handle paths", function() {
   compilesTo('<div>{{post.title}}</div>', '<div>hello</div>', { post: { title: 'hello' }});
 });
+
+test("The compiler can handle escaping HTML", function() {
+  compilesTo('<div>{{title}}</div>', '<div>&lt;strong&gt;hello&lt;/strong&gt;</div>', { title: '<strong>hello</strong>' });
+});
+
+test("The compiler can handle unescaped HTML", function() {
+  compilesTo('<div>{{{title}}}</div>', '<div><strong>hello</strong></div>', { title: '<strong>hello</strong>' });
+});
+
+test("The compiler can handle simple helpers", function() {
+  Handlebars.registerHTMLHelper('testing', function(path, options) {
+    return this[path[0]];
+  });
+
+  compilesTo('<div>{{testing title}}</div>', '<div>hello</div>', { title: 'hello' });
+});
+
+// test("The compiler tells helpers what kind of expression the path is");
