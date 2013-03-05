@@ -3162,6 +3162,12 @@ Handlebars.dom = {
   },
 
   resolveAttr: function(context, parts, element, attrName, escaped) {
+    var helper = Handlebars.htmlHelpers.RESOLVE_ATTR;
+
+    if (helper) {
+      return helper.apply(context, [parts, { element: element, attrName: attrName }]);
+    }
+
     return parts.reduce(function(current, part) {
       return current[part];
     }, context)

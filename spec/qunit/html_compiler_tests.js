@@ -2,6 +2,7 @@ module("HTML-based compiler (output)", {
   teardown: function() {
     delete Handlebars.htmlHelpers.testing;
     delete Handlebars.htmlHelpers.RESOLVE;
+    delete Handlebars.htmlHelpers.RESOLVE_ATTR;
   }
 });
 
@@ -225,4 +226,42 @@ test("Attributes can use computed values", function() {
 
 test("Attributes can use computed paths", function() {
   compilesTo('<a href="{{post.url}}">linky</a>', '<a href="linky.html">linky</a>', { post: { url: 'linky.html' }});
+});
+
+test("It is possible to override the resolution mechanism for attributes", function() {
+  Handlebars.registerHTMLHelper('RESOLVE_ATTR', function(parts, options) {
+    options.element.setAttribute(options.attrName, 'http://google.com/' + this[parts[0]]);
+  });
+
+  compilesTo('<a href="{{url}}">linky</a>', '<a href="http://google.com/linky.html">linky</a>', { url: 'linky.html' });
+});
+
+test("It is possible to use RESOLVE_ATTR for data binding", function() {
+  var callback;
+
+  Handlebars.registerHTMLHelper('RESOLVE_ATTR', function(parts, options) {
+    var element = options.element,
+        attrName = options.attrName,
+        context = this;
+
+    callback = function() {
+      var value = context[parts[0]];
+      element.setAttribute(attrName, value);
+    }
+
+    element.setAttribute(attrName, context[parts[0]]);
+  });
+
+  var object = { url: 'linky.html' };
+  var fragment = compilesTo('<a href="{{url}}">linky</a>', '<a href="linky.html">linky</a>', object);
+
+  object.url = 'clippy.html';
+  callback();
+
+  equalHTML(fragment, '<a href="clippy.html">linky</a>');
+
+  object.url = 'zippy.html';
+  callback();
+
+  equalHTML(fragment, '<a href="zippy.html">linky</a>');
 });
