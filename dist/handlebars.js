@@ -3284,7 +3284,7 @@ Handlebars.dom = {
 
     return parts.reduce(function(current, part) {
       return current[part];
-    }, context)
+    }, context);
   },
 
   frag: function(element, string) {
@@ -3294,7 +3294,7 @@ Handlebars.dom = {
     }
 
     var range = document.createRange();
-    range.setStart(element);
+    range.setStart(element, 0);
     range.collapse(false);
     return range.createContextualFragment(string);
   },

@@ -379,7 +379,7 @@ test("Data-bound block helpers", function() {
     function buildFrag() {
       var frag;
 
-      value = context[path];
+      var value = context[path];
 
       if (value) {
         frag = options.render(context);
@@ -388,7 +388,7 @@ test("Data-bound block helpers", function() {
       }
 
       if (!frag.firstChild) {
-        firstElement = lastElement = document.createComment('');
+        firstElement = lastElement = document.createTextNode('');
         frag.appendChild(firstElement);
       } else {
         firstElement = frag.firstChild;
@@ -407,14 +407,14 @@ test("Data-bound block helpers", function() {
 
       range.deleteContents();
       range.insertNode(frag);
-    }
+    };
 
     return frag;
   });
 
   var object = { shouldRender: false };
   var template = '<p>hi</p> content {{#testing shouldRender}}<p>Appears!</p>{{/testing}} more <em>content</em> here';
-  var fragment = compilesTo(template, '<p>hi</p> content <!----> more <em>content</em> here', object);
+  var fragment = compilesTo(template, '<p>hi</p> content  more <em>content</em> here', object);
 
   object.shouldRender = true;
   callback();
@@ -424,5 +424,5 @@ test("Data-bound block helpers", function() {
   object.shouldRender = false;
   callback();
 
-  equalHTML(fragment, '<p>hi</p> content <!----> more <em>content</em> here'); 
-})
+  equalHTML(fragment, '<p>hi</p> content  more <em>content</em> here');
+});
