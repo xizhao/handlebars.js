@@ -2845,6 +2845,7 @@ compiler1.mustacheAttr = function(attrName, mustache) {
     this.opcode('ambiguousAttr', attrName, mustache.id.string, mustache.escaped);
   } else {
     processParams(this, mustache.params);
+    processHash(this, mustache.hash);
     this.opcode('helperAttr', attrName, mustache.id.string, mustache.params.length);
   }
 
@@ -2860,6 +2861,7 @@ compiler1.mustacheContent = function(mustache) {
     this.opcode('ambiguous', mustache.id.string, mustache.escaped);
   } else {
     processParams(this, mustache.params);
+    processHash(this, mustache.hash);
     this.opcode('helper', mustache.id.string, mustache.params.length, mustache.escaped);
   }
 
@@ -2906,6 +2908,20 @@ function processParams(compiler, params) {
   params.forEach(function(param) {
     compiler[param.type](param);
   });
+}
+
+function processHash(compiler, hash) {
+  if (hash) {
+    hash.pairs.forEach(function(pair) {
+      var name = pair[0], param = pair[1];
+      compiler[param.type](param);
+      compiler.opcode('stackLiteral', name);
+    });
+    compiler.opcode('stackLiteral', hash.pairs.length);
+  } else {
+    compiler.opcode('stackLiteral', 0);
+  }
+
 }
 
 function appendMustache(compiler, mustache) {
@@ -2981,6 +2997,10 @@ compiler2.literal = function(literal) {
   pushStackLiteral(this, literal);
 };
 
+compiler2.stackLiteral = function(literal) {
+  pushStackLiteral(this, literal);
+};
+
 compiler2.string = function(string) {
   pushStackLiteral(this, quotedString('string'));
   pushStackLiteral(this, quotedString(string));
@@ -3036,7 +3056,19 @@ compiler2.helperAttr = function(attrName, name, size) {
 
 function prepareHelper(compiler, size) {
   var args = [],
-      types = [];
+      types = [],
+      hashPairs = [],
+      hashTypes = [],
+      keyName,
+      i;
+
+  var hashSize = popStack(compiler);
+
+  for (i=0; i<hashSize; i++) {
+    keyName = popStack(compiler);
+    hashPairs.push(keyName + ':' + popStack(compiler));
+    hashTypes.push(keyName + ':' + popStack(compiler));
+  }
 
   for (var i=0; i<size; i++) {
     args.push(popStack(compiler));
@@ -3044,7 +3076,7 @@ function prepareHelper(compiler, size) {
   }
 
   return {
-    options: '{types:' + array(types) + '}',
+    options: '{types:' + array(types) + ',hash:' + hash(hashPairs) + ',hashTypes:' + hash(hashTypes) + '}',
     args: array(args),
   };
 }
@@ -3078,6 +3110,10 @@ function quotedArray(list) {
 
 function array(array) {
   return "[" + array + "]";
+}
+
+function hash(pairs) {
+  return "{" + pairs.join(",") + "}";
 }
 
 function pushElement(compiler) {

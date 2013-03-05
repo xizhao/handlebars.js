@@ -89,6 +89,26 @@ test("The compiler tells helpers what kind of expression the path is", function(
   compilesTo('<div>{{testing false}}</div>', '<div>boolean-false</div>');
 });
 
+test("The compiler passes along the hash arguments", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    return options.hash.first + '-' + options.hash.second;
+  });
+
+  compilesTo('<div>{{testing first="one" second="two"}}</div>', '<div>one-two</div>');
+});
+
+test("The compiler passes along the types of the hash arguments", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    return options.hashTypes.first + '-' + options.hash.first;
+  });
+
+  compilesTo('<div>{{testing first="one"}}</div>', '<div>string-one</div>');
+  compilesTo('<div>{{testing first=one}}</div>', '<div>id-one</div>');
+  compilesTo('<div>{{testing first=1}}</div>', '<div>number-1</div>');
+  compilesTo('<div>{{testing first=true}}</div>', '<div>boolean-true</div>');
+  compilesTo('<div>{{testing first=false}}</div>', '<div>boolean-false</div>');
+});
+
 test("The compiler provides the current element as an option", function() {
   var textNode;
   Handlebars.registerHTMLHelper('testing', function(options) {
