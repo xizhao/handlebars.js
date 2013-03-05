@@ -2739,14 +2739,22 @@ Handlebars.registerHTMLHelper = function(name, callback) {
   Handlebars.htmlHelpers[name] = callback;
 };
 
-Handlebars.compileHTML = function(string, options) {
-  var ast = Handlebars.preprocessHTML(string),
-      compiler1 = new Handlebars.HTMLCompiler1(options),
+function compile(string, options) {
+  var ast = Handlebars.preprocessHTML(string);
+  return compileAST(ast, options);
+}
+
+function compileAST(ast, options) {
+  var compiler1 = new Handlebars.HTMLCompiler1(options),
       compiler2 = new Handlebars.HTMLCompiler2(options);
 
   var opcodes = compiler1.compile(ast);
-  return compiler2.compile(opcodes);
-};
+  return compiler2.compile(opcodes, {
+    children: compiler1.children
+  });
+}
+
+Handlebars.compileHTML = compile;
 
 function merge(options, defaults) {
   for (var prop in defaults) {
@@ -2776,6 +2784,7 @@ var compiler1 = Handlebars.HTMLCompiler1.prototype;
 
 compiler1.compile = function(ast) {
   this.opcodes = [];
+  this.children = [];
   processChildren(this, ast);
   return this.opcodes;
 };
@@ -2791,11 +2800,24 @@ function processChildren(compiler, children) {
     } else if (node instanceof Handlebars.HTMLElement) {
       compiler.element(node);
     } else if (node instanceof Handlebars.BlockElement) {
-
+      compiler.block(node);
     } else {
       compiler[node.type + "Content"](node);
     }
   }
+}
+
+compiler1.block = function(block) {
+  var program = compileAST(block.children, this.options),
+      mustache = block.helper;
+
+  this.children.push(program);
+
+  this.opcode('program', this.children.length - 1);
+  processParams(this, mustache.params);
+  processHash(this, mustache.hash);
+  this.opcode('helper', mustache.id.string, mustache.params.length, mustache.escaped);
+  this.opcode('appendFragment');
 }
 
 compiler1.opcode = function(type) {
@@ -2844,6 +2866,7 @@ compiler1.mustacheAttr = function(attrName, mustache) {
   } else if (type === 'ambiguous') {
     this.opcode('ambiguousAttr', attrName, mustache.id.string, mustache.escaped);
   } else {
+    this.opcode('program', null);
     processParams(this, mustache.params);
     processHash(this, mustache.hash);
     this.opcode('helperAttr', attrName, mustache.id.string, mustache.params.length);
@@ -2860,6 +2883,7 @@ compiler1.mustacheContent = function(mustache) {
   } else if (type === 'ambiguous') {
     this.opcode('ambiguous', mustache.id.string, mustache.escaped);
   } else {
+    this.opcode('program', null);
     processParams(this, mustache.params);
     processHash(this, mustache.hash);
     this.opcode('helper', mustache.id.string, mustache.params.length, mustache.escaped);
@@ -2928,7 +2952,7 @@ function appendMustache(compiler, mustache) {
   if (mustache.escaped) {
     compiler.opcode('appendText');
   } else {
-    compiler.opcode('appendFragment');
+    compiler.opcode('appendHTML');
   }
 }
 
@@ -2944,11 +2968,12 @@ Handlebars.HTMLCompiler2 = function() {};
 
 var compiler2 = Handlebars.HTMLCompiler2.prototype;
 
-compiler2.compile = function(opcodes) {
+compiler2.compile = function(opcodes, options) {
   this.output = [];
   this.elementNumber = 0;
   this.stackNumber = 0;
   this.stack = [];
+  this.children = options.children;
 
   this.preamble();
   processOpcodes(this, opcodes);
@@ -2966,6 +2991,10 @@ function processOpcodes(compiler, opcodes) {
 }
 
 compiler2.preamble = function() {
+  this.children.forEach(function(child, i) {
+    this.push("var child" + i + " = " + child.toString());
+  }, this);
+
   this.push("var element0, el");
   this.push("var frag = element0 = document.createDocumentFragment()");
   this.push("var dom = Handlebars.dom")
@@ -2973,6 +3002,10 @@ compiler2.preamble = function() {
 
 compiler2.postamble = function() {
   this.output.push("return frag;");
+};
+
+compiler2.program = function(programId) {
+  pushStackLiteral(this, programId);
 };
 
 compiler2.content = function(string) {
@@ -3010,9 +3043,13 @@ compiler2.appendText = function() {
   this.push(helper('appendText', this.el(), popStack(this)));
 };
 
+compiler2.appendHTML = function() {
+  this.push(helper('appendHTML', this.el(), popStack(this)));
+};
+
 compiler2.appendFragment = function() {
   this.push(helper('appendFragment', this.el(), popStack(this)));
-};
+}
 
 compiler2.openElement = function(tagName) {
   var elRef = pushElement(this);
@@ -3051,7 +3088,6 @@ compiler2.ambiguousAttr = function(attrName, string) {
 
 compiler2.helperAttr = function(attrName, name, size) {
   var prepared = prepareHelper(this, size);
-  debugger;
   pushStackLiteral(this, helper('helperAttr', quotedString(name), this.el(), quotedString(attrName), 'context', prepared.args, prepared.options));
 };
 
@@ -3076,8 +3112,16 @@ function prepareHelper(compiler, size) {
     types.push(popStack(compiler));
   }
 
+  var programId = popStack(compiler);
+
+  options = ['types:' + array(types), 'hashTypes:' + hash(hashTypes), 'hash:' + hash(hashPairs)];
+
+  if (programId !== null) {
+    options.push('render:child' + programId);
+  }
+
   return {
-    options: '{types:' + array(types) + ',hash:' + hash(hashPairs) + ',hashTypes:' + hash(hashTypes) + '}',
+    options: hash(options),
     args: array(args),
   };
 }
@@ -3164,9 +3208,14 @@ Handlebars.dom = {
     element.appendChild(document.createTextNode(value));
   },
 
-  appendFragment: function(element, value) {
+  appendHTML: function(element, value) {
     if (value === undefined) { return; }
     element.appendChild(this.frag(element, value));
+  },
+
+  appendFragment: function(element, fragment) {
+    if (fragment === undefined) { return; }
+    element.appendChild(fragment);
   },
 
   ambiguousContents: function(element, context, string, escaped) {
@@ -3242,6 +3291,10 @@ Handlebars.dom = {
     range.setStart(element);
     range.collapse(false);
     return range.createContextualFragment(string);
+  },
+
+  wrap: function(program) {
+    return program;
   }
 };
 

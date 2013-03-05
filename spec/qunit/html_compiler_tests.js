@@ -332,3 +332,11 @@ test("Attribute helpers can use the hash for data binding", function() {
   callback();
   equalHTML(fragment, '<div class="nope">hi</div>')
 });
+
+test("A simple block helper can return the default document fragment", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    return options.render(this);
+  });
+
+  compilesTo('{{#testing}}<div id="test">123</div>{{/testing}}', '<div id="test">123</div>');
+});
