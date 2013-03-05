@@ -71,4 +71,24 @@ test("The compiler can handle simple helpers", function() {
   compilesTo('<div>{{testing title}}</div>', '<div>hello</div>', { title: 'hello' });
 });
 
-// test("The compiler tells helpers what kind of expression the path is");
+test("The compiler tells helpers what kind of expression the path is", function() {
+  Handlebars.registerHTMLHelper('testing', function(path, options) {
+    return options.types[0] + '-' + path;
+  });
+
+  compilesTo('<div>{{testing "title"}}</div>', '<div>string-title</div>');
+  compilesTo('<div>{{testing 123}}</div>', '<div>number-123</div>');
+  compilesTo('<div>{{testing true}}</div>', '<div>boolean-true</div>');
+  compilesTo('<div>{{testing false}}</div>', '<div>boolean-false</div>');
+});
+
+test("The compiler provides the current element as an option", function() {
+  var textNode;
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    textNode = document.createTextNode("testy");
+    options.element.appendChild(textNode);
+  });
+
+  compilesTo('<div>{{testing}}</div>', '<div>testy</div>');
+  equal(textNode.textContent, 'testy');
+});
