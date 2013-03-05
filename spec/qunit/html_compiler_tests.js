@@ -356,4 +356,14 @@ test("A block helper can insert the document fragment manually", function() {
   });
 
   compilesTo('{{#testing}}<div id="test">{{title}}</div>{{/testing}}', '<div id="test">Rails is omakase</div>');
-})
+});
+
+test("Block helpers receive hash arguments", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    if (options.hash.truth) {
+      return options.render(this);
+    }
+  });
+
+  compilesTo('{{#testing truth=true}}<p>Yep!</p>{{/testing}}{{#testing truth=false}}<p>Nope!</p>{{/testing}}', '<p>Yep!</p>');
+});
