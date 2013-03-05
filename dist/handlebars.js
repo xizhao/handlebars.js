@@ -2843,6 +2843,9 @@ compiler1.mustacheAttr = function(attrName, mustache) {
     this.opcode('dynamicAttr', attrName, mustache.id.parts, mustache.escaped);
   } else if (type === 'ambiguous') {
     this.opcode('ambiguousAttr', attrName, mustache.id.string, mustache.escaped);
+  } else {
+    processParams(this, mustache.params);
+    this.opcode('helperAttr', attrName, mustache.id.string, mustache.params.length);
   }
 
   applyAttribute(this, attrName, mustache);
@@ -3014,8 +3017,7 @@ compiler2.ambiguous = function(string, escaped) {
 };
 
 compiler2.helper = function(name, size, escaped) {
-  var parentRef = topElement(this),
-      args = [],
+  var args = [],
       types = [];
 
   for (var i=0; i<size; i++) {
@@ -3033,6 +3035,19 @@ compiler2.dynamicAttr = function(attrName, parts) {
 
 compiler2.ambiguousAttr = function(attrName, string) {
   pushStackLiteral(this, helper('ambiguousAttr', this.el(), 'context', quotedString(attrName), quotedString(string)));
+};
+
+compiler2.helperAttr = function(attrName, name, size) {
+  var args = [],
+    types = [];
+
+  for (var i=0; i<size; i++) {
+    args.push(popStack(this));
+    types.push(popStack(this));
+  }
+
+  var options = '{types:' + array(types) + '}';
+  pushStackLiteral(this, helper('helperAttr', quotedString(name), this.el(), quotedString(attrName), 'context', array(args), options));
 };
 
 compiler2.applyAttribute = function(attrName) {
@@ -3154,6 +3169,14 @@ Handlebars.dom = {
     } else {
       return this.resolveAttr(context, [string], element, attrName)
     }
+  },
+
+  helperAttr: function(name, element, attrName, context, args, options) {
+    var helper = Handlebars.htmlHelpers[name];
+    options.element = element;
+    options.attrName = attrName;
+    args.push(options);
+    return helper.apply(context, args);
   },
 
   applyAttribute: function(element, attrName, value) {

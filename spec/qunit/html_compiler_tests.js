@@ -265,3 +265,19 @@ test("It is possible to use RESOLVE_ATTR for data binding", function() {
 
   equalHTML(fragment, '<a href="zippy.html">linky</a>');
 });
+
+test("Attributes can be populated with helpers that generate a string", function() {
+  Handlebars.registerHTMLHelper('testing', function(path, options) {
+    return this[path];
+  });
+
+  compilesTo('<a href="{{testing url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html'});
+});
+
+test("A helper can choose to insert the attribute itself", function() {
+  Handlebars.registerHTMLHelper('testing', function(path, options) {
+    options.element.setAttribute(options.attrName, this[path]);
+  });
+
+  compilesTo('<a href="{{testing url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html'});
+});
