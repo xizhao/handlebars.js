@@ -147,6 +147,48 @@ test("Simple data binding using text nodes", function() {
   equalHTML(fragment, '<div>brown cow world</div>');
 });
 
+test("Simple data binding using fragments", function() {
+  var callback;
+
+  Handlebars.registerHTMLHelper('RESOLVE', function(parts, options) {
+    var context = this,
+        fragment = Handlebars.dom.frag(options.element, context[parts[0]]);
+
+    var comment1 = document.createComment(''),
+        comment2 = document.createComment('');
+
+    fragment.insertBefore(comment1, fragment.firstChild);
+    fragment.appendChild(comment2);
+
+    callback = function() {
+      var range = document.createRange();
+      range.setStartAfter(comment1);
+      range.setEndBefore(comment2);
+
+      var value = context[parts[0]],
+          fragment = range.createContextualFragment(value);
+
+      range.deleteContents();
+      range.insertNode(fragment);
+    };
+
+    options.element.appendChild(fragment);
+  });
+
+  var object = { title: '<p>hello</p>' };
+  var fragment = compilesTo('<div>{{title}} world</div>', '<div><!----><p>hello</p><!----> world</div>', object);
+
+  object.title = '<p>goodbye</p>';
+  callback();
+
+  equalHTML(fragment, '<div><!----><p>goodbye</p><!----> world</div>');
+
+  object.title = '<p>brown cow</p>';
+  callback();
+
+  equalHTML(fragment, '<div><!----><p>brown cow</p><!----> world</div>');
+});
+
 test("RESOLVE hook receives escaping information", function() {
   expect(3);
 
