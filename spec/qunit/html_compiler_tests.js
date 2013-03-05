@@ -50,3 +50,7 @@ function compilesTo(html, expected, context) {
 test("The compiler can handle simple handlebars", function() {
   compilesTo('<div>{{title}}</div>', '<div>hello</div>', { title: 'hello' });
 });
+
+test("The compiler can handle paths", function() {
+  compilesTo('<div>{{post.title}}</div>', '<div>hello</div>', { post: { title: 'hello' }});
+});
