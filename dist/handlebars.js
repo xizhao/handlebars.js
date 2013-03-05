@@ -2629,6 +2629,8 @@ processor.program = function(program) {
 };
 
 processor.block = function(block) {
+  switchToHandlebars(this);
+
   processToken(this.elementStack, block);
 
   if (block.program) {
@@ -2645,16 +2647,20 @@ processor.content = function(content) {
 };
 
 processor.mustache = function(mustache) {
-  var token = this.tokenizer.token;
+  switchToHandlebars(this);
+  
+  pushChild(this, mustache);
+};
+
+function switchToHandlebars(compiler) {
+  var token = compiler.tokenizer.token;
 
   // TODO: Monkey patch Chars.addChar like attributes
   if (token instanceof Chars) {
-    processToken(this.elementStack, token);
-    this.tokenizer.token = null;
+    processToken(compiler.elementStack, token);
+    compiler.tokenizer.token = null;
   }
-
-  pushChild(this, mustache);
-};
+}
 
 function processTokens(elementStack, tokens) {
   tokens.forEach(function(token) {
@@ -2741,6 +2747,7 @@ Handlebars.registerHTMLHelper = function(name, callback) {
 
 function compile(string, options) {
   var ast = Handlebars.preprocessHTML(string);
+  console.log(ast);
   return compileAST(ast, options);
 }
 

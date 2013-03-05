@@ -50,7 +50,7 @@ function compilesTo(html, expected, context) {
   var template = Handlebars.compileHTML(html);
   var fragment = template(context);
 
-  equalHTML(fragment, expected || html);
+  equalHTML(fragment, expected === undefined ? html : expected);
   return fragment;
 }
 
@@ -367,3 +367,66 @@ test("Block helpers receive hash arguments", function() {
 
   compilesTo('{{#testing truth=true}}<p>Yep!</p>{{/testing}}{{#testing truth=false}}<p>Nope!</p>{{/testing}}', '<p>Yep!</p>');
 });
+
+test("Data-bound block helpers", function() {
+  var callback;
+
+  Handlebars.registerHTMLHelper('testing', function(path, options) {
+    var context = this, value = context[path], frag, firstElement, lastElement;
+
+    if (value) {
+      var frag = options.render(context);
+    } else {
+      frag = document.createDocumentFragment();
+    }
+
+    if (!frag.firstChild) {
+      firstElement = lastElement = document.createComment('');
+      frag.appendChild(firstElement);
+    } else {
+      firstElement = frag.firstChild;
+      lastElement = frag.lastChild;
+    }
+
+    callback = function() {
+      var value = context[path];
+
+      if (value) {
+        var frag = options.render(context);
+      } else {
+        frag = document.createDocumentFragment();
+      }
+
+      var range = document.createRange();
+      range.setStartBefore(firstElement);
+      range.setEndAfter(lastElement);
+
+      if (!frag.firstChild) {
+        firstElement = lastElement = document.createComment('');
+        frag.appendChild(firstElement);
+      } else {
+        firstElement = frag.firstChild;
+        lastElement = frag.lastChild;
+      }
+
+      range.deleteContents();
+      range.insertNode(frag);
+    }
+
+    return frag;
+  });
+
+  var object = { shouldRender: false };
+  var template = '<p>hi</p> content {{#testing shouldRender}}<p>Appears!</p>{{/testing}} more <em>content</em> here';
+  var fragment = compilesTo(template, '<p>hi</p> content <!----> more <em>content</em> here', object);
+
+  object.shouldRender = true;
+  callback();
+
+  equalHTML(fragment, '<p>hi</p> content <p>Appears!</p> more <em>content</em> here'); 
+
+  object.shouldRender = false;
+  callback();
+
+  equalHTML(fragment, '<p>hi</p> content <!----> more <em>content</em> here'); 
+})

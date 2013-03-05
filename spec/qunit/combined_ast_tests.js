@@ -110,4 +110,19 @@ test("Simple embedded block helpers", function() {
   ]);
 });
 
+test("Invoked block helper", function() {
+  var html = '<p>hi</p> content {{#testing shouldRender}}<p>Appears!</p>{{/testing}} more <em>content</em> here';
+
+  deepEqual(preprocessHTML(html), [
+    element('p', ['hi']),
+    ' content ',
+    block(mustache([id('testing'), id('shouldRender')]), [
+      element('p', ['Appears!'])
+    ]),
+    ' more ',
+    element('em', ['content']),
+    ' here'
+  ]);
+});
+
 })();
