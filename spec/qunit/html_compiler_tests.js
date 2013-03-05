@@ -218,3 +218,7 @@ test("Helpers receive escaping information", function() {
 
   compilesTo('<div>{{testing escaped}}-{{{testing unescaped}}</div>', '<div>escaped-unescaped</div>');
 });
+
+test("Attributes can use computed values", function() {
+  compilesTo('<a href="{{url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html' });
+});
