@@ -146,3 +146,19 @@ test("Simple data binding using text nodes", function() {
 
   equalHTML(fragment, '<div>brown cow world</div>');
 });
+
+test("RESOLVE hook receives escaping information", function() {
+  expect(3);
+
+  Handlebars.registerHTMLHelper('RESOLVE', function(parts, options) {
+    if (parts[0] === 'escaped') {
+      equal(options.escaped, true);
+    } else if (parts[0] === 'unescaped') {
+      equal(options.escaped, false);
+    }
+
+    options.element.appendChild(document.createTextNode(parts[0]))
+  });
+
+  compilesTo('<div>{{escaped}}-{{{unescaped}}</div>', '<div>escaped-unescaped</div>');
+});
