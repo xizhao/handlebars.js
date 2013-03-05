@@ -1,8 +1,13 @@
-module("HTML-based compiler (output)");
+module("HTML-based compiler (output)", {
+  teardown: function() {
+    delete Handlebars.htmlHelpers.testing;
+    delete Handlebars.htmlHelpers.RESOLVE;
+  }
+});
 
 function equalHTML(fragment, html) {
   var div = document.createElement("div");
-  div.appendChild(fragment);
+  div.appendChild(fragment.cloneNode(true));
 
   equal(div.innerHTML, html);
 }
@@ -45,6 +50,7 @@ function compilesTo(html, expected, context) {
   var fragment = template(context);
 
   equalHTML(fragment, expected || html);
+  return fragment;
 }
 
 test("The compiler can handle simple handlebars", function() {
@@ -91,4 +97,52 @@ test("The compiler provides the current element as an option", function() {
 
   compilesTo('<div>{{testing}}</div>', '<div>testy</div>');
   equal(textNode.textContent, 'testy');
+});
+
+test("It is possible to override the resolution mechanism", function() {
+  Handlebars.registerHTMLHelper('RESOLVE', function(parts, options) {
+    if (parts[0] === 'zomg') {
+      options.element.appendChild(document.createTextNode(this.zomg));
+    } else {
+      options.element.appendChild(document.createTextNode(parts.join("-")));
+    }
+  });
+
+  compilesTo('<div>{{foo}}</div>', '<div>foo</div>');
+  compilesTo('<div>{{foo.bar}}</div>', '<div>foo-bar</div>');
+  compilesTo('<div>{{zomg}}</div>', '<div>hello</div>', { zomg: 'hello' });
+});
+
+test("Simple data binding using text nodes", function() {
+  var callback;
+
+  Handlebars.registerHTMLHelper('RESOLVE', function(parts, options) {
+    var context = this,
+        textNode = document.createTextNode(context[parts[0]]);
+
+    callback = function() {
+      var value = context[parts[0]],
+          parent = textNode.parentNode,
+          originalText = textNode;
+
+      textNode = document.createTextNode(value);
+      parent.insertBefore(textNode, originalText);
+      parent.removeChild(originalText);
+    };
+
+    options.element.appendChild(textNode);
+  });
+
+  var object = { title: 'hello' };
+  var fragment = compilesTo('<div>{{title}} world</div>', '<div>hello world</div>', object);
+
+  object.title = 'goodbye';
+  callback();
+
+  equalHTML(fragment, '<div>goodbye world</div>');
+
+  object.title = 'brown cow';
+  callback();
+
+  equalHTML(fragment, '<div>brown cow world</div>');
 });
