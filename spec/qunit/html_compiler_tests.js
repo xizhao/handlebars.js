@@ -426,3 +426,36 @@ test("Data-bound block helpers", function() {
 
   equalHTML(fragment, '<p>hi</p> content  more <em>content</em> here');
 });
+
+test("Node helpers can modify the node", function() {
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    options.element.setAttribute('zomg', 'zomg');
+  });
+
+  compilesTo('<div {{testing}}>Node helpers</div>', '<div zomg="zomg">Node helpers</div>');
+});
+
+test("Node helpers can be used for attribute bindings", function() {
+  var callback;
+
+  Handlebars.registerHTMLHelper('testing', function(options) {
+    var context = this,
+        path = options.hash.href,
+        element = options.element;
+
+    callback = function() {
+      var value = context[path];
+      element.setAttribute('href', value);
+    }
+
+    callback();
+  });
+
+  var object = { url: 'linky.html' };
+  var fragment = compilesTo('<a {{testing href="url"}}>linky</a>', '<a href="linky.html">linky</a>', object);
+
+  object.url = 'zippy.html';
+  callback();
+
+  equalHTML(fragment, '<a href="zippy.html">linky</a>');
+});

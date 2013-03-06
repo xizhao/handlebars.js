@@ -2610,6 +2610,7 @@ Handlebars.preprocessHTML = function(html) {
 
 Handlebars.HTMLProcessor = function() {
   this.elementStack = [{ children: [] }];
+  this.pendingTagHelpers = [];
   this.tokenizer = new HTML5Tokenizer.Tokenizer('');
 };
 
@@ -2623,7 +2624,7 @@ processor.program = function(program) {
     this.accept(statements[i]);
   }
 
-  processTokens(this.elementStack, [this.tokenizer.tokenizeEOF()]);
+  processTokens(this, this.elementStack, [this.tokenizer.tokenizeEOF()]);
 
   return this.elementStack[0].children;
 };
@@ -2631,7 +2632,7 @@ processor.program = function(program) {
 processor.block = function(block) {
   switchToHandlebars(this);
 
-  processToken(this.elementStack, block);
+  processToken(this, this.elementStack, block);
 
   if (block.program) {
     this.accept(block.program);
@@ -2643,7 +2644,7 @@ processor.block = function(block) {
 
 processor.content = function(content) {
   var tokens = this.tokenizer.tokenizePart(content.string);
-  return processTokens(this.elementStack, tokens);
+  return processTokens(this, this.elementStack, tokens);
 };
 
 processor.mustache = function(mustache) {
@@ -2657,14 +2658,14 @@ function switchToHandlebars(compiler) {
 
   // TODO: Monkey patch Chars.addChar like attributes
   if (token instanceof Chars) {
-    processToken(compiler.elementStack, token);
+    processToken(compiler, compiler.elementStack, token);
     compiler.tokenizer.token = null;
   }
 }
 
-function processTokens(elementStack, tokens) {
+function processTokens(compiler, elementStack, tokens) {
   tokens.forEach(function(token) {
-    processToken(elementStack, token);
+    processToken(compiler, elementStack, token);
   });
 }
 
@@ -2681,6 +2682,9 @@ function pushChild(processor, token) {
     case "attributeValueUnquoted":
     case "attributeValueDoubleQuoted":
       processor.tokenizer.token.addToAttributeValue(token);
+      return;
+    case "beforeAttributeName":
+      processor.pendingTagHelpers.push(token);
       return;
     default:
       var element = currentElement(processor);
@@ -2702,7 +2706,7 @@ var Chars = HTML5Tokenizer.Chars,
     StartTag = HTML5Tokenizer.StartTag,
     EndTag = HTML5Tokenizer.EndTag;
 
-function processToken(elementStack, token) {
+function processToken(processor, elementStack, token) {
   var currentElement = elementStack[elementStack.length - 1];
   if (token instanceof Chars) {
     currentElement.children.push(token.chars);
@@ -2714,16 +2718,20 @@ function processToken(elementStack, token) {
       throw new Error("Closing tag " + token.tagName + " did not match last open tag " + currentElement.tag);
     }
   } else if (token instanceof StartTag) {
-    elementStack.push(new Handlebars.HTMLElement(token.tagName, token.attributes));
+    var element = new Handlebars.HTMLElement(token.tagName, token.attributes);
+    element.helpers = processor.pendingTagHelpers.slice();
+    processor.pendingTagHelpers = [];
+    elementStack.push(element);
   } else if (token instanceof Handlebars.AST.BlockNode) {
     elementStack.push(new Handlebars.BlockElement(token.mustache));
   }
 }
 
-Handlebars.HTMLElement = function(tag, attributes, children) {
+Handlebars.HTMLElement = function(tag, attributes, children, helpers) {
   this.tag = tag;
   this.attributes = attributes || [];
   this.children = children || [];
+  this.helpers = helpers || [];
 };
 
 Handlebars.BlockElement = function(helper, children) {
@@ -2842,6 +2850,10 @@ compiler1.element = function(element) {
     this.attribute(attribute);
   }, this);
 
+  element.helpers.forEach(function(helper) {
+    this.nodeHelper(helper);
+  }, this);
+
   processChildren(this, element.children);
 
   this.opcode('closeElement');
@@ -2862,6 +2874,13 @@ compiler1.attribute = function(attribute) {
   } else {
     this[value.type + "Attr"](name, value);
   }
+};
+
+compiler1.nodeHelper = function(mustache) {
+  this.opcode('program', null);
+  processParams(this, mustache.params);
+  processHash(this, mustache.hash);
+  this.opcode('nodeHelper', mustache.id.string, mustache.params.length);
 };
 
 compiler1.mustacheAttr = function(attrName, mustache) {
@@ -3084,6 +3103,11 @@ compiler2.helper = function(name, size, escaped) {
   pushStackLiteral(this, helper('helperContents', quotedString(name), this.el(), 'context', prepared.args, prepared.options));
 };
 
+compiler2.nodeHelper = function(name, size) {
+  var prepared = prepareHelper(this, size);
+  this.push(helper('helperContents', quotedString(name), this.el(), 'context', prepared.args, prepared.options));
+};
+
 compiler2.dynamicAttr = function(attrName, parts) {
   pushStackLiteral(this, helper('resolveAttr', 'context', quotedArray(parts), this.el(), quotedString(attrName)));
 };
@@ -3297,10 +3321,6 @@ Handlebars.dom = {
     range.setStart(element, 0);
     range.collapse(false);
     return range.createContextualFragment(string);
-  },
-
-  wrap: function(program) {
-    return program;
   }
 };
 

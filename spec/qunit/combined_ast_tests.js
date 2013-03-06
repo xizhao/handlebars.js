@@ -30,13 +30,13 @@ function string(data) {
   return new Handlebars.AST.StringNode(data);
 }
 
-function element(tagName, attrs, children) {
+function element(tagName, attrs, children, helpers) {
   if (arguments.length === 2) {
     children = attrs;
     attrs = [];
   }
 
-  return new Handlebars.HTMLElement(tagName, attrs, children);
+  return new Handlebars.HTMLElement(tagName, attrs, children, helpers);
 }
 
 function block(helper, children) {
@@ -110,7 +110,7 @@ test("Simple embedded block helpers", function() {
   ]);
 });
 
-test("Invoked block helper", function() {
+test("Involved block helper", function() {
   var html = '<p>hi</p> content {{#testing shouldRender}}<p>Appears!</p>{{/testing}} more <em>content</em> here';
 
   deepEqual(preprocessHTML(html), [
@@ -122,6 +122,14 @@ test("Invoked block helper", function() {
     ' more ',
     element('em', ['content']),
     ' here'
+  ]);
+});
+
+test("Node helpers", function() {
+  var html = "<p {{action 'boom'}} class='bar'>Some content</p>";
+
+  deepEqual(preprocessHTML(html), [
+    element('p', [['class', ['bar']]], ['Some content'], [mustache([id('action'), string('boom')])])
   ]);
 });
 
