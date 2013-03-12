@@ -2712,8 +2712,14 @@ function processToken(processor, elementStack, token) {
     currentElement.children.push(token.chars);
   } else if (token instanceof EndTag) {
     if (currentElement.tag === token.tagName) {
+      var value = Handlebars.processHTMLMacros(currentElement)
       elementStack.pop();
-      elementStack[elementStack.length - 1].children.push(currentElement);
+
+      if (value === undefined) {
+        elementStack[elementStack.length - 1].children.push(currentElement);
+      } else if (value instanceof Handlebars.HTMLElement) {
+        elementStack[elementStack.length - 1].children.push(value);
+      }
     } else {
       throw new Error("Closing tag " + token.tagName + " did not match last open tag " + currentElement.tag);
     }
@@ -2727,12 +2733,41 @@ function processToken(processor, elementStack, token) {
   }
 }
 
+Handlebars.processHTMLMacros = function(element) {
+  // no-op - hook for extensions
+}
+
 Handlebars.HTMLElement = function(tag, attributes, children, helpers) {
   this.tag = tag;
   this.attributes = attributes || [];
   this.children = children || [];
   this.helpers = helpers || [];
+
+  for (var i=0, l=attributes.length; i<l; i++) {
+    var attribute = attributes[i];
+    attributes[attribute[0]] = attribute[1];
+  }
 };
+
+Handlebars.HTMLElement.prototype = {
+  removeAttr: function(name) {
+    var attributes = this.attributes, attribute;
+    delete attributes[name];
+    for (var i=0, l=attributes.length; i<l; i++) {
+      attribute = attributes[i];
+      if (attribute[0] === name) {
+        attributes.splice(i, 1);
+        break;
+      }
+    }
+  },
+
+  getAttr: function(name) {
+    var attributes = this.attributes;
+    if (attributes.length !== 1 || attributes[0] instanceof Handlebars.AST.MustacheNode) { return; }
+    return attributes[name][0];
+  }
+}
 
 Handlebars.BlockElement = function(helper, children) {
   this.helper = helper;
@@ -2741,7 +2776,7 @@ Handlebars.BlockElement = function(helper, children) {
 
 })(Handlebars);
 ;
-// lib/handlebars/compiler/html_compiler.js
+// lib/handlebars/compiler/html-compiler.js
 
 (function(Handlebars) {
 
@@ -3323,6 +3358,43 @@ Handlebars.dom = {
     return range.createContextualFragment(string);
   }
 };
+
+})(Handlebars);
+;
+// lib/handlebars/compiler/html-macros.js
+
+(function(Handlebars) {
+
+var htmlMacros = {};
+
+Handlebars.registerHTMLMacro = function(name, test, mutate) {
+  htmlMacros[name] = { test: test, mutate: mutate };
+};
+
+Handlebars.htmlMacros = htmlMacros;
+
+Handlebars.processHTMLMacros = function processHTMLMacros(element) {
+  var mutated, newElement;
+
+  for (var prop in htmlMacros) {
+    var macro = htmlMacros[prop];
+    if (macro.test(element)) {
+      newElement = macro.mutate(element);
+      if (newElement === undefined) { newElement = element; }
+      mutated = true;
+      break;
+    }
+  }
+
+  if (!mutated) {
+    debugger;
+    return element;
+  } else if (newElement instanceof Handlebars.HTMLElement) {
+    return processHTMLMacros(newElement);
+  } else {
+    return newElement;
+  }
+}
 
 })(Handlebars);
 ;

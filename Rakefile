@@ -43,7 +43,7 @@ def remove_exports(string)
   match ? match[1] : string
 end
 
-minimal_deps = %w(browser-prefix base compiler/parser compiler/base compiler/ast utils compiler/compiler compiler/simple-html-tokenizer compiler/visitor compiler/html compiler/html_compiler runtime browser-suffix).map do |file|
+minimal_deps = %w(browser-prefix base compiler/parser compiler/base compiler/ast utils compiler/compiler compiler/simple-html-tokenizer compiler/visitor compiler/html compiler/html-compiler compiler/html-macros runtime browser-suffix).map do |file|
   "lib/handlebars/#{file}.js"
 end
 

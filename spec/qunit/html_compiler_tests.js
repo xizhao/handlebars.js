@@ -333,6 +333,10 @@ test("Attribute helpers can use the hash for data binding", function() {
   equalHTML(fragment, '<div class="nope">hi</div>')
 });
 
+// test("Attributes containing multiple helpers are treated like a block with ATTR_BLOCK", function() {
+//   compilesTo('<a href="http://{{url}}/index.html">linky</a>', '<a href="http://example.com/index.html">linky</a>', { url: 'example.com' });
+// });
+
 test("A simple block helper can return the default document fragment", function() {
   Handlebars.registerHTMLHelper('testing', function(options) {
     return options.render(this);
