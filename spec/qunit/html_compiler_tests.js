@@ -330,12 +330,24 @@ test("Attribute helpers can use the hash for data binding", function() {
 
   object.on = false;
   callback();
-  equalHTML(fragment, '<div class="nope">hi</div>')
+  equalHTML(fragment, '<div class="nope">hi</div>');
 });
 
 test("Attributes containing multiple helpers are treated like a block", function() {
   compilesTo('<a href="http://{{url}}/index.html">linky</a>', '<a href="http://example.com/index.html">linky</a>', { url: 'example.com' });
 });
+
+test("Attributes containing a path is treated like a block", function() {
+  compilesTo('<a href="http://{{person.url}}/index.html">linky</a>', '<a href="http://example.com/index.html">linky</a>', { person: { url: 'example.com' } });
+});
+
+test("Attributes containing a helper is treated like a block", function() {
+  Handlebars.registerHTMLHelper('testing', function(number, options) {
+    return "example.com";
+  });
+
+  compilesTo('<a href="http://{{testing 123}}/index.html">linky</a>', '<a href="http://example.com/index.html">linky</a>', { person: { url: 'example.com' } });
+})
 
 test("A simple block helper can return the default document fragment", function() {
   Handlebars.registerHTMLHelper('testing', function(options) {
