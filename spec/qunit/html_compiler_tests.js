@@ -347,7 +347,28 @@ test("Attributes containing a helper is treated like a block", function() {
   });
 
   compilesTo('<a href="http://{{testing 123}}/index.html">linky</a>', '<a href="http://example.com/index.html">linky</a>', { person: { url: 'example.com' } });
-})
+});
+
+test("It is possible to trigger a re-render of an attribute from a child resolution", function() {
+  var callback;
+
+  Handlebars.registerHTMLHelper('RESOLVE_IN_ATTR', function(path, options) {
+    callback = function() {
+      debugger;
+      options.rerender();
+    }
+
+    return this[path];
+  });
+
+  var context = { url: "example.com" };
+  var fragment = compilesTo('<a href="http://{{url}}/index.html">linky</a>', '<a href="http://example.com/index.html">linky</a>', context);
+
+  context.url = "www.example.com";
+  callback();
+
+  equalHTML(fragment, '<a href="http://www.example.com/index.html">linky</a>');
+});
 
 test("A simple block helper can return the default document fragment", function() {
   Handlebars.registerHTMLHelper('testing', function(options) {

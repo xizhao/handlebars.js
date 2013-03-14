@@ -3049,7 +3049,7 @@ attrCompiler.compile = function(opcodes, options) {
   processOpcodes(this, opcodes);
   this.postamble();
 
-  return new Function('context', this.output.join("\n"));
+  return new Function('context', 'options', this.output.join("\n"));
 };
 
 attrCompiler.preamble = function() {
@@ -3071,7 +3071,7 @@ attrCompiler.dynamic = function(parts, escaped) {
 };
 
 attrCompiler.ambiguous = function(string, escaped) {
-  pushStackLiteral(this, 'context[' + quotedString(string) + ']');
+  pushStackLiteral(this, helper('resolveInAttr', 'context', quotedArray([string]), 'options'));
 };
 
 attrCompiler.helper = function(name, size, escaped) {
@@ -3122,7 +3122,7 @@ compiler2.compile = function(opcodes, options) {
 
   console.debug(this.output.join("\n"));
 
-  return new Function('context', this.output.join("\n"));
+  return new Function('context', 'options', this.output.join("\n"));
 };
 
 function processOpcodes(compiler, opcodes) {
@@ -3150,7 +3150,7 @@ compiler2.program = function(programId) {
 };
 
 compiler2.content = function(string) {
-  this.push(invoke(this.el(), 'appendChild', helper('frag', this.el(), quotedString(string))));
+  this.push(invokeMethod(this.el(), 'appendChild', helper('frag', this.el(), quotedString(string))));
 };
 
 compiler2.push = function(string) {
@@ -3194,21 +3194,25 @@ compiler2.appendFragment = function() {
 
 compiler2.openElement = function(tagName) {
   var elRef = pushElement(this);
-  this.push("var " + elRef + " = el = " + invoke('document', 'createElement', quotedString(tagName)));
+  this.push("var " + elRef + " = el = " + invokeMethod('document', 'createElement', quotedString(tagName)));
 };
 
 compiler2.attribute = function(name, value) {
-  this.push(invoke('el', 'setAttribute', quotedString(name), quotedString(value)));
+  this.push(invokeMethod('el', 'setAttribute', quotedString(name), quotedString(value)));
 };
 
 compiler2.blockAttr = function(name, child) {
-  pushStackLiteral(this, 'child' + child + '(context)');
-  this.push(invoke('el', 'setAttribute', quotedString(name), popStack(this)));
+  var invokeRererender = invokeMethod('el', 'setAttribute', quotedString(name), invokeFunction('child' + child, 'context', 'rerender'));
+  var rerender = 'function rerender() { ' + invokeRererender + '}';
+  var options = hash(['rerender:' + rerender, 'element:el', 'attrName:' + quotedString(name)]);
+  pushStackLiteral(this, invokeFunction('child' + child, 'context', options));
+
+  this.push(invokeMethod('el', 'setAttribute', quotedString(name), popStack(this)));
 };
 
 compiler2.closeElement = function() {
   var elRef = popElement(this);
-  this.push(invoke(this.el(), 'appendChild', elRef));
+  this.push(invokeMethod(this.el(), 'appendChild', elRef));
 };
 
 compiler2.dynamic = function(parts, escaped) {
@@ -3281,15 +3285,20 @@ compiler2.applyAttribute = function(attrName) {
   this.push(helper('applyAttribute', this.el(), quotedString(attrName), popStack(this)));
 };
 
-function invoke(receiver, method) {
+function invokeMethod(receiver, method) {
   var params = [].slice.call(arguments, 2);
   return receiver + "." + method + "(" + params.join(", ") + ")";
+}
+
+function invokeFunction(func) {
+  var params = [].slice.call(arguments, 1);
+  return func + "(" + params.join(", ") + ")";
 }
 
 function helper() {
   var args = [].slice.call(arguments, 0);
   args.unshift(dom);
-  return invoke.apply(this, args);
+  return invokeMethod.apply(this, args);
 }
 
 function escapeString(string) {
@@ -3425,6 +3434,18 @@ Handlebars.dom = {
 
     if (helper) {
       return helper.apply(context, [parts, { element: element, attrName: attrName }]);
+    }
+
+    return parts.reduce(function(current, part) {
+      return current[part];
+    }, context);
+  },
+
+  resolveInAttr: function(context, parts, options) {
+    var helper = Handlebars.htmlHelpers.RESOLVE_IN_ATTR;
+
+    if (helper) {
+      return helper.apply(context, [parts, options]);
     }
 
     return parts.reduce(function(current, part) {
