@@ -167,4 +167,48 @@ describe('parser', function() {
       ast_for(new Handlebars.AST.ProgramNode([ new Handlebars.AST.ContentNode("Hello")])).should.equal("CONTENT[ \'Hello\' ]\n");
     });
   });
+
+  // We are only adding lines to AST nodes that might execut client code
+  describe('lines', function() {
+    it('should include lines in ID references', function() {
+      var ast = Handlebars.parse('\n\n  {{foo}}');
+      ast.statements[1].id.lines.should.eql({first_line: 3, last_line: 3, first_column: 4, last_column: 7});
+
+      ast = Handlebars.parse('\n\n  {{fu.gazi}}');
+      ast.statements[1].id.lines.should.eql({first_line: 3, last_line: 3, first_column: 4, last_column: 11});
+    });
+    it('should include lines in DATA references', function() {
+      var ast = Handlebars.parse('\n\n  {{@foo}}');
+      ast.statements[1].id.lines.should.eql({first_line: 3, last_line: 3, first_column: 4, last_column: 8});
+
+      ast = Handlebars.parse('\n\n  {{@fu.gazi}}');
+      ast.statements[1].id.lines.should.eql({first_line: 3, last_line: 3, first_column: 4, last_column: 12});
+    });
+    it('should include lines in partial references', function() {
+      var ast = Handlebars.parse('\n\n  {{>foo}}');
+      ast.statements[1].lines.should.eql({first_line: 3, last_line: 3, first_column: 2, last_column: 10});
+
+      ast = Handlebars.parse('\n\n  {{>foo fu}}');
+      ast.statements[1].lines.should.eql({first_line: 3, last_line: 3, first_column: 2, last_column: 13});
+    });
+
+    it('should include lines in mustache references', function() {
+      var ast = Handlebars.parse('\n\n  {{foo}}');
+      ast.statements[1].lines.should.eql({first_line: 3, last_line: 3, first_column: 2, last_column: 9});
+
+      ast = Handlebars.parse('\n\n  {{{foo}}}');
+      ast.statements[1].lines.should.eql({first_line: 3, last_line: 3, first_column: 2, last_column: 11});
+
+      ast = Handlebars.parse('\n\n  {{&foo}}');
+      ast.statements[1].lines.should.eql({first_line: 3, last_line: 3, first_column: 2, last_column: 10});
+    });
+
+    it('should include lines in block references', function() {
+      var ast = Handlebars.parse('\n\n  {{#foo}}{{/foo}}');
+      ast.statements[1].mustache.lines.should.eql({first_line: 3, last_line: 3, first_column: 2, last_column: 10});
+
+      ast = Handlebars.parse('\n\n  {{^foo}}{{/foo}}');
+      ast.statements[1].mustache.lines.should.eql({first_line: 3, last_line: 3, first_column: 2, last_column: 10});
+    });
+  });
 });

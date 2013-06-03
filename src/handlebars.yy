@@ -30,11 +30,17 @@ statement
   ;
 
 openBlock
-  : OPEN_BLOCK inMustache CLOSE { $$ = new yy.MustacheNode($2[0], $2[1]); }
+  : OPEN_BLOCK inMustache CLOSE {
+    $$ = new yy.MustacheNode($2[0], $2[1]);
+    $$.lines = @$;
+  }
   ;
 
 openInverse
-  : OPEN_INVERSE inMustache CLOSE { $$ = new yy.MustacheNode($2[0], $2[1]); }
+  : OPEN_INVERSE inMustache CLOSE {
+    $$ = new yy.MustacheNode($2[0], $2[1]);
+    $$.lines = @$;
+  }
   ;
 
 closeBlock
@@ -45,14 +51,24 @@ mustache
   : OPEN inMustache CLOSE {
     // Parsing out the '&' escape token at this level saves ~500 bytes after min due to the removal of one parser node.
     $$ = new yy.MustacheNode($2[0], $2[1], $1[2] === '&');
+    $$.lines = @$;
   }
-  | OPEN_UNESCAPED inMustache CLOSE_UNESCAPED { $$ = new yy.MustacheNode($2[0], $2[1], true); }
+  | OPEN_UNESCAPED inMustache CLOSE_UNESCAPED {
+    $$ = new yy.MustacheNode($2[0], $2[1], true);
+    $$.lines = @$;
+  }
   ;
 
 
 partial
-  : OPEN_PARTIAL partialName CLOSE { $$ = new yy.PartialNode($2); }
-  | OPEN_PARTIAL partialName path CLOSE { $$ = new yy.PartialNode($2, $3); }
+  : OPEN_PARTIAL partialName CLOSE {
+    $$ = new yy.PartialNode($2);
+    $$.lines = @$;
+  }
+  | OPEN_PARTIAL partialName path CLOSE {
+    $$ = new yy.PartialNode($2, $3);
+    $$.lines = @$;
+  }
   ;
 
 simpleInverse
@@ -104,11 +120,17 @@ partialName
   ;
 
 dataName
-  : DATA path { $$ = new yy.DataNode($2); }
+  : DATA path {
+    $$ = new yy.DataNode($2);
+    $$.lines = @$;
+  }
   ;
 
 path
-  : pathSegments { $$ = new yy.IdNode($1); }
+  : pathSegments {
+    $$ = new yy.IdNode($1);
+    $$.lines = @$;
+  }
   ;
 
 pathSegments

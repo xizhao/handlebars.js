@@ -225,22 +225,38 @@ case 14: this.$ = new yy.ContentNode($$[$0]);
 break;
 case 15: this.$ = new yy.CommentNode($$[$0]); 
 break;
-case 16: this.$ = new yy.MustacheNode($$[$0-1][0], $$[$0-1][1]); 
+case 16:
+    this.$ = new yy.MustacheNode($$[$0-1][0], $$[$0-1][1]);
+    this.$.lines = this._$;
+  
 break;
-case 17: this.$ = new yy.MustacheNode($$[$0-1][0], $$[$0-1][1]); 
+case 17:
+    this.$ = new yy.MustacheNode($$[$0-1][0], $$[$0-1][1]);
+    this.$.lines = this._$;
+  
 break;
 case 18: this.$ = $$[$0-1]; 
 break;
 case 19:
     // Parsing out the '&' escape token at this level saves ~500 bytes after min due to the removal of one parser node.
     this.$ = new yy.MustacheNode($$[$0-1][0], $$[$0-1][1], $$[$0-2][2] === '&');
+    this.$.lines = this._$;
   
 break;
-case 20: this.$ = new yy.MustacheNode($$[$0-1][0], $$[$0-1][1], true); 
+case 20:
+    this.$ = new yy.MustacheNode($$[$0-1][0], $$[$0-1][1], true);
+    this.$.lines = this._$;
+  
 break;
-case 21: this.$ = new yy.PartialNode($$[$0-1]); 
+case 21:
+    this.$ = new yy.PartialNode($$[$0-1]);
+    this.$.lines = this._$;
+  
 break;
-case 22: this.$ = new yy.PartialNode($$[$0-2], $$[$0-1]); 
+case 22:
+    this.$ = new yy.PartialNode($$[$0-2], $$[$0-1]);
+    this.$.lines = this._$;
+  
 break;
 case 23: 
 break;
@@ -290,9 +306,15 @@ case 45: this.$ = new yy.PartialNameNode(new yy.StringNode($$[$0]));
 break;
 case 46: this.$ = new yy.PartialNameNode(new yy.IntegerNode($$[$0])); 
 break;
-case 47: this.$ = new yy.DataNode($$[$0]); 
+case 47:
+    this.$ = new yy.DataNode($$[$0]);
+    this.$.lines = this._$;
+  
 break;
-case 48: this.$ = new yy.IdNode($$[$0]); 
+case 48:
+    this.$ = new yy.IdNode($$[$0]);
+    this.$.lines = this._$;
+  
 break;
 case 49: $$[$0-2].push({part: $$[$0], separator: $$[$0-1]}); this.$ = $$[$0-2]; 
 break;
@@ -689,6 +711,10 @@ Handlebars.AST.MustacheNode = function(rawParams, hash, unescaped) {
   this.type = "mustache";
   this.escaped = !unescaped;
   this.hash = hash;
+
+  // Our "exec" lines are the open params themselves. Sourcemap will remap
+  // any nested errors appropriately.
+  this.lines = rawParams.lines;
 
   var id = this.id = rawParams[0];
   var params = this.params = rawParams.slice(1);
