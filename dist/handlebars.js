@@ -583,13 +583,19 @@ pushState:function begin(condition) {
 lexer.options = {};
 lexer.performAction = function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
 
+
+function strip(start, end) {
+  return yy_.yytext = yy_.yytext.substr(start, yy_.yyleng-end);
+}
+
+
 var YYSTATE=YY_START
 switch($avoiding_name_collisions) {
 case 0:yy_.yytext = "\\"; return 14;
 break;
 case 1:
                                    if(yy_.yytext.slice(-1) !== "\\") this.begin("mu");
-                                   if(yy_.yytext.slice(-1) === "\\") yy_.yytext = yy_.yytext.substr(0,yy_.yyleng-1), this.begin("emu");
+                                   if(yy_.yytext.slice(-1) === "\\") strip(0,1), this.begin("emu");
                                    if(yy_.yytext) return 14;
                                  
 break;
@@ -597,11 +603,11 @@ case 2:return 14;
 break;
 case 3:
                                    if(yy_.yytext.slice(-1) !== "\\") this.popState();
-                                   if(yy_.yytext.slice(-1) === "\\") yy_.yytext = yy_.yytext.substr(0,yy_.yyleng-1);
+                                   if(yy_.yytext.slice(-1) === "\\") strip(0,1);
                                    return 14;
                                  
 break;
-case 4:yy_.yytext = yy_.yytext.substr(0, yy_.yyleng-4); this.popState(); return 15;
+case 4:strip(0,4); this.popState(); return 15;
 break;
 case 5:return 25;
 break;
@@ -619,7 +625,7 @@ case 11:return 22;
 break;
 case 12:this.popState(); this.begin('com');
 break;
-case 13:yy_.yytext = yy_.yytext.substr(3,yy_.yyleng-5); this.popState(); return 15;
+case 13:strip(3,5); this.popState(); return 15;
 break;
 case 14:return 22;
 break;
@@ -637,9 +643,9 @@ case 20:this.popState(); return 24;
 break;
 case 21:this.popState(); return 18;
 break;
-case 22:yy_.yytext = yy_.yytext.substr(1,yy_.yyleng-2).replace(/\\"/g,'"'); return 32;
+case 22:yy_.yytext = strip(1,2).replace(/\\"/g,'"'); return 32;
 break;
-case 23:yy_.yytext = yy_.yytext.substr(1,yy_.yyleng-2).replace(/\\'/g,"'"); return 32;
+case 23:yy_.yytext = strip(1,2).replace(/\\'/g,"'"); return 32;
 break;
 case 24:return 40;
 break;
@@ -651,7 +657,7 @@ case 27:return 33;
 break;
 case 28:return 38;
 break;
-case 29:yy_.yytext = yy_.yytext.substr(1, yy_.yyleng-2); return 38;
+case 29:yy_.yytext = strip(1,2); return 38;
 break;
 case 30:return 'INVALID';
 break;
@@ -659,7 +665,7 @@ case 31:return 5;
 break;
 }
 };
-lexer.rules = [/^(?:\\\\(?=(\{\{)))/,/^(?:[^\x00]*?(?=(\{\{)))/,/^(?:[^\x00]+)/,/^(?:[^\x00]{2,}?(?=(\{\{|$)))/,/^(?:[\s\S]*?--\}\})/,/^(?:\{\{>)/,/^(?:\{\{#)/,/^(?:\{\{\/)/,/^(?:\{\{\^)/,/^(?:\{\{\s*else\b)/,/^(?:\{\{\{)/,/^(?:\{\{&)/,/^(?:\{\{!--)/,/^(?:\{\{![\s\S]*?\}\})/,/^(?:\{\{)/,/^(?:=)/,/^(?:\.(?=[}\/ ]))/,/^(?:\.\.)/,/^(?:[\/.])/,/^(?:\s+)/,/^(?:\}\}\})/,/^(?:\}\})/,/^(?:"(\\["]|[^"])*")/,/^(?:'(\\[']|[^'])*')/,/^(?:@)/,/^(?:true(?=[}\s]))/,/^(?:false(?=[}\s]))/,/^(?:-?[0-9]+(?=[}\s]))/,/^(?:[^\s!"#%-,\.\/;->@\[-\^`\{-~]+(?=[=}\s\/.]))/,/^(?:\[[^\]]*\])/,/^(?:.)/,/^(?:$)/];
+lexer.rules = [/^(?:\\\\(?=(\{\{)))/,/^(?:[^\x00]*?(?=(\{\{)))/,/^(?:[^\x00]+)/,/^(?:[^\x00]{2,}?(?=(\{\{|$)))/,/^(?:[\s\S]*?--\}\})/,/^(?:\{\{>)/,/^(?:\{\{#)/,/^(?:\{\{\/)/,/^(?:\{\{\^)/,/^(?:\{\{\s*else\b)/,/^(?:\{\{\{)/,/^(?:\{\{&)/,/^(?:\{\{!--)/,/^(?:\{\{![\s\S]*?\}\})/,/^(?:\{\{)/,/^(?:=)/,/^(?:\.(?=[}\/ ]))/,/^(?:\.\.)/,/^(?:[\/.])/,/^(?:\s+)/,/^(?:\}\}\})/,/^(?:\}\})/,/^(?:"(\\["]|[^"])*")/,/^(?:'(\\[']|[^'])*')/,/^(?:@)/,/^(?:true(?=[}\s]))/,/^(?:false(?=[}\s]))/,/^(?:-?[0-9]+(?=[}\s]))/,/^(?:([^\s!"#%-,\.\/;->@\[-\^`\{-~]+(?=[=}\s\/.])))/,/^(?:\[[^\]]*\])/,/^(?:.)/,/^(?:$)/];
 lexer.conditions = {"mu":{"rules":[5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],"inclusive":false},"emu":{"rules":[3],"inclusive":false},"com":{"rules":[4],"inclusive":false},"INITIAL":{"rules":[0,1,2,31],"inclusive":true}};
 return lexer;})()
 parser.lexer = lexer;
