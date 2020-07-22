@@ -1,5 +1,6 @@
 [![Travis Build Status](https://travis-ci.org/wycats/handlebars.js.png?branch=master)](https://travis-ci.org/wycats/handlebars.js)
 [![Selenium Test Status](https://saucelabs.com/buildstatus/handlebars)](https://saucelabs.com/u/handlebars)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fxizhao%2Fhandlebars.js.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fxizhao%2Fhandlebars.js?ref=badge_shield)
 
 Handlebars.js
 =============
@@ -467,3 +468,7 @@ Handlebars.js is released under the MIT license.
 [pull-request]: https://github.com/wycats/handlebars.js/pull/new/master
 [issue]: https://github.com/wycats/handlebars.js/issues/new
 [jsfiddle]: http://l.kde.cc/hbs-bug
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fxizhao%2Fhandlebars.js.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fxizhao%2Fhandlebars.js?ref=badge_large)
